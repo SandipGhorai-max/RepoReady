@@ -1,0 +1,414 @@
+const { useState, useEffect } = React;
+
+const MOCK_RESPONSE = {
+  repo_overview: {
+    name: "fastapi/fastapi",
+    description: "FastAPI is a modern, fast web framework for building APIs with Python.",
+    language: "Python",
+    stars: 73000,
+    topics: ["api", "rest", "python", "async"]
+  },
+  prerequisites: [
+    { name: "Python", version: "3.8+", why: "FastAPI is built on Python", download_url: "https://python.org", status: "required" },
+    { name: "pip", version: "latest", why: "Python package manager", download_url: "https://pip.pypa.io", status: "required" }
+  ],
+  dependency_health: {
+    score: 92,
+    healthy: 18,
+    warnings: 1,
+    critical: 0,
+    details: [
+      { name: "starlette", status: "healthy", message: "Actively maintained" },
+      { name: "pydantic", status: "warning", message: "v1 → v2 migration recommended" }
+    ]
+  },
+  setup_steps: [
+    { step_number: 1, title: "Clone the repository", command: "git clone https://github.com/fastapi/fastapi", what_it_does: "Downloads the entire codebase to your machine", what_you_learn: "Git is how developers share code" },
+    { step_number: 2, title: "Install dependencies", command: "pip install -r requirements.txt", what_it_does: "Installs all Python packages", what_you_learn: "Dependencies are pre-built code you reuse" },
+    { step_number: 3, title: "Run the development server", command: "uvicorn main:app --reload", what_it_does: "Starts the API server locally", what_you_learn: "Uvicorn is an async Python server" }
+  ],
+  tech_stack: [
+    { name: "FastAPI", role: "Web Framework", explanation: "Handles incoming API requests" },
+    { name: "Pydantic", role: "Data Validation", explanation: "Ensures data is the right shape" },
+    { name: "Uvicorn", role: "Server", explanation: "Runs the application in production" }
+  ],
+  common_errors: [
+    { error: "ModuleNotFoundError: No module named 'fastapi'", why: "Dependencies not installed yet", fix: "pip install -r requirements.txt" }
+  ]
+};
+
+const LoadingState = ({ onComplete }) => {
+  const steps = [
+    "Fetching repository structure...",
+    "Analyzing tech stack...",
+    "Scanning dependencies...",
+    "Checking for vulnerabilities...",
+    "Generating setup guide..."
+  ];
+  
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentStepIndex < steps.length) {
+      const timer = setTimeout(() => {
+        setCurrentStepIndex(prev => prev + 1);
+      }, 400);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(onComplete, 600); // Slight delay before finishing
+      return () => clearTimeout(timer);
+    }
+  }, [currentStepIndex, onComplete, steps.length]);
+
+  return (
+    <div className="w-full max-w-2xl mx-auto mt-20 animate-fade-in-up border border-[#1e293b] rounded-lg overflow-hidden shadow-2xl">
+      <div className="bg-[#1e293b] px-4 py-2 flex items-center gap-2 border-b border-[#334155]">
+        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+      </div>
+      <div className="bg-panel p-6 font-mono text-sm">
+        <div className="space-y-3 text-slate-300">
+          {steps.map((step, index) => {
+            const isCompleted = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            const isFuture = index > currentStepIndex;
+
+            if (isFuture) return null;
+
+            return (
+              <div key={index} className="flex items-center justify-between">
+                <span>
+                  <span className="text-cyan-400 mr-3">&gt;</span>
+                  {step}
+                  {isCurrent && <span className="cursor-blink"></span>}
+                </span>
+                {isCompleted && <span className="text-emerald font-bold animate-fade-in-up">✓</span>}
+                {isCurrent && <span className="text-cyan-400">●</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CopyButton = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={`p-2 rounded transition-all duration-200 ${
+        copied ? 'bg-emerald/20 text-emerald' : 'hover:bg-[#1e293b] text-slate-400 hover:text-cyan-400'
+      }`}
+      title="Copy to clipboard"
+    >
+      {copied ? 'Copied!' : '📋'}
+    </button>
+  );
+};
+
+const ResultsDashboard = ({ data }) => {
+  const [openError, setOpenError] = useState(null);
+
+  // Helper for staggered fade-in
+  const getDelay = (index) => ({ animationDelay: `${index * 100}ms` });
+
+  return (
+    <div className="w-full max-w-5xl mx-auto mt-16 space-y-8 pb-32">
+      {/* CARD 1 - REPO OVERVIEW */}
+      <div className="bg-[#0f172a]/80 backdrop-blur-md border border-border rounded-xl p-8 opacity-0 animate-fade-in-up" style={getDelay(0)}>
+        <div className="flex items-center gap-3 text-xl font-bold text-white mb-6">
+          <span className="text-2xl">📦</span> What Is This?
+        </div>
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+          <h2 className="text-3xl font-mono text-cyan-400 font-bold">{data.repo_overview.name}</h2>
+          <div className="flex items-center gap-3">
+            <span className="bg-[#1e293b] text-yellow-400 px-3 py-1 rounded-full text-sm font-mono flex items-center gap-1 border border-[#334155]">
+              ★ {data.repo_overview.stars.toLocaleString()}
+            </span>
+            <span className="bg-[#1e293b] text-cyan-200 px-3 py-1 rounded-full text-sm font-mono border border-[#334155]">
+              {data.repo_overview.language}
+            </span>
+          </div>
+        </div>
+        <p className="text-slate-300 text-lg mb-6 leading-relaxed max-w-3xl">{data.repo_overview.description}</p>
+        <div className="flex flex-wrap gap-2">
+          <span className="text-sm text-slate-500 mr-2 py-1 font-mono">TAGS:</span>
+          {data.repo_overview.topics.map(topic => (
+            <span key={topic} className="text-sm bg-cyan-900/30 text-cyan-400 px-3 py-1 rounded-md border border-cyan-500/20">
+              {topic}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* CARD 2 - PREREQUISITES */}
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-border rounded-xl p-8 opacity-0 animate-fade-in-up h-full" style={getDelay(1)}>
+          <div className="flex items-center gap-3 text-xl font-bold text-white mb-6">
+            <span className="text-2xl">⚡</span> Prerequisites
+          </div>
+          <div className="space-y-4">
+            {data.prerequisites.map(req => (
+              <div key={req.name} className="flex flex-col sm:flex-row sm:items-start justify-between p-4 rounded-lg bg-[#0d1117]/80 border border-[#1e293b] hover:border-cyan-500/30 transition-colors">
+                <div className="mb-3 sm:mb-0">
+                  <div className="flex items-center gap-3">
+                    <span className={req.status === 'required' ? 'text-emerald text-lg' : 'text-yellow-400 text-lg'}>
+                      {req.status === 'required' ? '✅' : '⚠️'}
+                    </span>
+                    <span className="font-bold text-white font-mono">{req.name} <span className="text-slate-400 text-sm ml-1">{req.version}</span></span>
+                  </div>
+                  <div className="text-sm text-slate-400 mt-2 ml-8 font-mono">Why: {req.why}</div>
+                </div>
+                <a href={req.download_url} target="_blank" rel="noreferrer" className="text-sm text-black bg-cyan-400 hover:bg-cyan-300 px-4 py-2 rounded font-bold transition-colors whitespace-nowrap self-start sm:self-center">
+                  Download →
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CARD 3 - DEPENDENCY HEALTH */}
+        <div className="bg-[#0f172a]/80 backdrop-blur-md border border-border rounded-xl p-8 opacity-0 animate-fade-in-up h-full" style={getDelay(2)}>
+          <div className="flex items-center gap-3 text-xl font-bold text-white mb-8">
+            <span className="text-2xl">🛡️</span> Dependency Health
+          </div>
+          <div className="flex items-center gap-10 mb-8">
+            <div className="relative w-32 h-32 flex items-center justify-center flex-shrink-0">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1e293b" strokeWidth="10" />
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke={data.dependency_health.score > 80 ? '#00ff88' : '#f59e0b'} strokeWidth="10" strokeDasharray={`${data.dependency_health.score * 2.51} 251`} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-3xl font-mono font-bold text-white">{data.dependency_health.score}</span>
+                <span className="text-xs text-slate-500 font-bold tracking-widest uppercase">Score</span>
+              </div>
+            </div>
+            <div className="space-y-4 text-sm font-mono w-full">
+              <div className="flex justify-between items-center border-b border-[#1e293b] pb-2">
+                <span className="text-slate-300">✅ Healthy</span>
+                <span className="text-emerald font-bold">{data.dependency_health.healthy}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-[#1e293b] pb-2">
+                <span className="text-slate-300">⚠️ Updates</span>
+                <span className="text-yellow-400 font-bold">{data.dependency_health.warnings}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-300">🔴 Critical</span>
+                <span className="text-red-400 font-bold">{data.dependency_health.critical}</span>
+              </div>
+            </div>
+          </div>
+          <button className="w-full py-3 text-sm font-mono font-bold text-cyan-400 border border-cyan-400/20 rounded hover:bg-cyan-400/10 transition-colors">
+            See Details ↓
+          </button>
+        </div>
+      </div>
+
+      {/* CARD 4 - SETUP GUIDE (STAR OF THE SHOW) */}
+      <div className="bg-[#0f172a]/80 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 opacity-0 animate-fade-in-up relative overflow-hidden shadow-[0_0_30px_rgba(0,212,255,0.1)]" style={getDelay(3)}>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 to-emerald"></div>
+        <div className="flex items-center gap-3 text-2xl font-bold text-white mb-10">
+          <span className="text-3xl">🚀</span> Setup Guide
+        </div>
+        <div className="space-y-10">
+          {data.setup_steps.map((step, index) => (
+            <div key={index} className="relative">
+              {index !== data.setup_steps.length - 1 && (
+                <div className="absolute left-6 top-14 w-0.5 h-[calc(100%+1rem)] bg-[#1e293b]"></div>
+              )}
+              <div className="flex gap-6">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#0a0a0f] border-2 border-cyan-400 flex items-center justify-center text-cyan-400 font-mono text-lg font-bold shadow-[0_0_15px_rgba(0,212,255,0.3)] z-10">
+                  {step.step_number}
+                </div>
+                <div className="flex-grow pt-1">
+                  <h3 className="text-xl font-bold text-white mb-1">STEP {step.step_number} — {step.title}</h3>
+                  <div className="bg-panel rounded-lg border border-[#1e293b] flex justify-between items-center mt-4 mb-4 group overflow-hidden">
+                    <pre className="p-4 text-cyan-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap flex-grow">
+                      <code>{step.command}</code>
+                    </pre>
+                    <div className="p-3 bg-[#1e293b]/50 border-l border-[#1e293b] h-full flex items-center justify-center">
+                      <CopyButton text={step.command} />
+                    </div>
+                  </div>
+                  <div className="bg-[#0a0a0f]/50 border border-[#1e293b]/50 rounded-lg p-4 text-sm font-mono">
+                    <p className="mb-2"><span className="text-slate-500 font-bold">What this does:</span> <span className="text-slate-300">{step.what_it_does}</span></p>
+                    <p><span className="text-slate-500 font-bold">What you're learning:</span> <span className="text-emerald/90">{step.what_you_learn}</span></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CARD 5 - TECH STACK */}
+      <div className="bg-[#0f172a]/80 backdrop-blur-md border border-border rounded-xl p-8 opacity-0 animate-fade-in-up" style={getDelay(4)}>
+        <div className="flex items-center gap-3 text-xl font-bold text-white mb-6">
+          <span className="text-2xl">🧩</span> Tech Stack Explainer
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {data.tech_stack.map((tech, i) => (
+            <div key={tech.name} className="bg-panel rounded-lg p-6 border border-[#1e293b] hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(0,212,255,0.1)] transition-all group">
+              <h4 className="font-bold text-white text-xl mb-2 font-mono group-hover:text-cyan-400 transition-colors">{tech.name}</h4>
+              <div className="text-xs text-emerald font-bold mb-4 uppercase tracking-wider border-b border-[#1e293b] pb-2 inline-block">{tech.role}</div>
+              <p className="text-sm text-slate-400 leading-relaxed">{tech.explanation}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CARD 6 - COMMON ERRORS */}
+      <div className="bg-[#0f172a]/80 backdrop-blur-md border border-border rounded-xl p-8 opacity-0 animate-fade-in-up" style={getDelay(5)}>
+        <div className="flex items-center gap-3 text-xl font-bold text-white mb-6">
+          <span className="text-2xl">🐛</span> Common Errors
+        </div>
+        <div className="space-y-4">
+          {data.common_errors.map((error, index) => (
+            <div key={index} className="border border-[#1e293b] rounded-lg overflow-hidden bg-panel">
+              <button 
+                className="w-full flex items-center justify-between p-5 text-left hover:bg-[#1e293b] transition-colors"
+                onClick={() => setOpenError(openError === index ? null : index)}
+              >
+                <span className="font-mono text-red-400 text-sm font-bold">▼ "{error.error}"</span>
+                <span className="text-slate-500 font-mono text-xs border border-slate-600 px-2 py-1 rounded">{openError === index ? 'CLOSE' : 'OPEN'}</span>
+              </button>
+              {openError === index && (
+                <div className="p-5 pt-0 border-t border-[#1e293b] bg-[#0a0a0f]">
+                  <p className="text-sm text-slate-300 mb-4 mt-4 font-mono leading-relaxed"><strong className="text-slate-500">Why this happens:</strong><br/>{error.why}</p>
+                  <div className="bg-panel rounded border border-emerald/30 flex justify-between items-stretch overflow-hidden">
+                    <div className="p-4 flex items-center bg-emerald/5 border-r border-emerald/20 text-emerald font-bold font-mono text-xs uppercase">Fix</div>
+                    <code className="p-4 text-emerald font-mono text-sm flex-grow flex items-center">{error.fix}</code>
+                    <div className="p-2 flex items-center border-l border-[#1e293b]">
+                       <CopyButton text={error.fix} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const App = () => {
+  const [url, setUrl] = useState("");
+  const [status, setStatus] = useState("idle"); // idle, loading, success, error
+  const [data, setData] = useState(null);
+
+  const handleAnalyze = () => {
+    if (!url.trim()) return;
+    setStatus("loading");
+    
+    // Using mock data for development
+    setTimeout(() => {
+      setData(MOCK_RESPONSE);
+      // Wait for LoadingState to finish its sequence before updating status
+    }, 100); 
+  };
+
+  const handleLoadingComplete = () => {
+    setStatus("success");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleAnalyze();
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      {/* Header */}
+      <header className="w-full px-8 py-6 absolute top-0 left-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(0,212,255,0.8)] animate-pulse"></div>
+          <h1 className="text-xl font-mono font-bold tracking-tight text-white">RepoReady</h1>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow flex flex-col items-center justify-center min-h-screen px-4 pt-20">
+        
+        {/* HERO SECTION */}
+        {(status === "idle" || status === "loading") && (
+          <div className={`w-full max-w-4xl flex flex-col items-center text-center transition-all duration-700 ${status === 'loading' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100 relative'}`}>
+            <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-tight">
+              From zero to <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald">running</span><br/> in seconds.
+            </h2>
+            <p className="text-slate-400 mb-12 text-lg md:text-xl max-w-2xl font-mono">
+              The premium developer tool that analyzes any GitHub repo and generates a complete setup guide instantly.
+            </p>
+            
+            {/* Input Box */}
+            <div className="w-full max-w-2xl">
+              <div className="bg-[#0f172a]/60 backdrop-blur-xl border border-[#1e293b] rounded-lg p-2 flex flex-col sm:flex-row gap-2 glow-focus transition-all duration-300 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                <div className="flex-grow flex items-center px-4 py-3 bg-[#0a0a0f]/80 rounded border border-transparent focus-within:border-cyan-500/30 transition-colors">
+                  <span className="text-cyan-400 mr-3 animate-pulse">●</span>
+                  <input 
+                    type="text" 
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Paste any GitHub repo URL"
+                    className="w-full bg-transparent border-none outline-none text-white font-mono placeholder-slate-600 text-lg"
+                  />
+                  {url.length === 0 && <span className="cursor-blink-input inline-block w-2 h-5 bg-cyan-400/50 -ml-1 mt-1"></span>}
+                </div>
+                <button 
+                  onClick={handleAnalyze}
+                  disabled={!url.trim()}
+                  className="bg-cyan-400 hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold px-8 py-3 rounded transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,212,255,0.4)] hover:shadow-[0_0_25px_rgba(0,212,255,0.6)] font-mono text-lg uppercase tracking-wider"
+                >
+                  Analyze <span className="text-xl">→</span>
+                </button>
+              </div>
+
+              {/* Example Pills */}
+              <div className="mt-8 flex flex-wrap justify-center items-center gap-3 text-sm">
+                {["vercel/next.js", "fastapi/fastapi", "expressjs/express"].map(repo => (
+                  <button 
+                    key={repo}
+                    onClick={() => setUrl(`https://github.com/${repo}`)}
+                    className="px-4 py-2 rounded-md border border-[#1e293b] bg-[#0f172a]/50 text-slate-400 hover:text-cyan-400 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all font-mono text-xs tracking-wide"
+                  >
+                    {repo}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Scroll Indicator */}
+            <div className="absolute bottom-10 animate-bounce text-slate-600 font-mono text-sm opacity-50">
+              SCROLL ↓
+            </div>
+          </div>
+        )}
+
+        {status === "loading" && (
+          <div className="w-full absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4">
+             <LoadingState onComplete={handleLoadingComplete} />
+          </div>
+        )}
+
+        {status === "success" && data && (
+          <ResultsDashboard data={data} />
+        )}
+      </main>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
